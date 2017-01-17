@@ -23,6 +23,7 @@ on early-init
 
 on init
     sysclktz 0
+    loglevel 3
 
 loglevel 5
     write /proc/bootprof "INIT: on init start"
@@ -268,7 +269,7 @@ on post-fs-data
     # must uncomment this line, otherwise encrypted filesystems
     # won't work.
     # Set indication (checked by vold) that we have finished this action
-    #setprop vold.post_fs_data_done 1
+    setprop vold.post_fs_data_done 1
 
 #INTERNAL_START
     # Set SELinux security contexts on upgrade or policy update.
@@ -393,12 +394,10 @@ service logd /system/bin/logd
 
 service logd-reinit /system/bin/logd --reinit
     oneshot
-    disabled
 
 service console /system/bin/sh
     class core
     console
-    disabled
     user shell
     seclabel u:r:shell:s0
 
@@ -409,16 +408,14 @@ on property:ro.debuggable=1
 service adbd /sbin/adbd --root_seclabel=u:r:su:s0
     class core
     socket adbd stream 660 system system
-    disabled
     seclabel u:r:adbd:s0
 
-service vold /system/bin/vold \
-        --blkid_context=u:r:blkid:s0 --blkid_untrusted_context=u:r:blkid_untrusted:s0 \
+service vold /system/bin/vold
+        --blkid_context=u:r:blkid:s0 --blkid_untrusted_context=u:r:blkid_untrusted:s0
         --fsck_context=u:r:fsck:s0 --fsck_untrusted_context=u:r:fsck_untrusted:s0
     class core
     socket vold stream 0660 root mount
     socket cryptd stream 0660 root mount
-    ioprio be 2
 
 service debuggerd /system/bin/debuggerd
     class main
@@ -428,14 +425,12 @@ service debuggerd64 /system/bin/debuggerd64
 
 # One shot invocation to deal with encrypted volume.
 service defaultcrypto /system/bin/vdc --wait cryptfs mountdefaultencrypted
-    disabled
     oneshot
     # vold will set vold.decrypt to trigger_restart_framework (default
     # encryption) or trigger_restart_min_framework (other encryption)
 
 # One shot invocation to encrypt unencrypted volumes
 service encrypt /system/bin/vdc --wait cryptfs enablecrypto inplace default
-    disabled
     oneshot
     # vold will set vold.decrypt to trigger_restart_framework (default
     # encryption)
@@ -448,8 +443,7 @@ on property:persist.logd.logpersistd=logcatd
     start logcatd
 
 service logcatd /system/bin/logcat -b all -v threadtime -v usec -v printable -D -f /data/misc/logd/logcat -r 64 -n 256
-    class late_start
-    disabled
+    class main
     # logd for write to /data/misc/logd, log group for read from log daemon
     user logd
     group log
